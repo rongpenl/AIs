@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0, viewport-fit=cover">
+  <title>Math Game</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/14.2.1/math.js"></script>
+  <style>
+    body { margin:0; padding:0; font-family:sans-serif; display:flex; flex-direction:column; height:100vh; touch-action:none; }
+    .region { border:2px solid #ccc; margin:5px; padding:10px; box-sizing:border-box; }
+    .region-label { font-weight:bold; text-align:center; margin-bottom:8px; }
+    .header { display:flex; }
+    #target-region { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    #operators-region { flex:2; display:flex; flex-wrap:wrap; gap:5px; justify-content:center; align-items:center; }
+    #number-pile-region { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; align-items:center; }
+    #number-pile, #operators-region { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; }
+    .card { margin:5px; padding:10px; border:1px solid #000; background:#f0f0f0; cursor:grab; user-select:none; text-align:center; width:40px; position:relative; touch-action:none; }
+    #slots-region { flex:1; display:grid; grid-template-columns:repeat(5,60px); grid-auto-rows:60px; gap:10px; justify-content:center; align-content:start; touch-action:none; }
+    .slot { border:2px dashed #aaa; display:flex; justify-content:center; align-items:center; }
+    #controls { display:flex; flex-direction:column; align-items:center; gap:10px; }
+    #controls button { padding:10px 20px; font-size:1em; }
+    #message { color:#999; min-height:1.2em; text-align:center; }
+    .dragging { position:fixed; z-index:1000; pointer-events:none; }
+  </style>
+</head>
+<body>
+  <div class="header region">
+    <div id="target-region">
+      <div class="region-label">Target</div>
+      <div id="target-value" style="font-size:2em; text-align:center;"></div>
+    </div>
+    <div id="operators-region" class="region">
+      <div class="region-label" style="width:100%;">Operators</div>
+    </div>
+  </div>
+  <div id="number-pile-region" class="region">
+    <div class="region-label" style="width:100%;">Number Cards</div>
+    <div id="number-pile"></div>
+  </div>
+  <div id="slots-region" class="region">
+    <div class="region-label" style="grid-column: span 5;">Docking Spaces</div>
+  </div>
+  <div id="controls" class="region">
+    <div id="message"></div>
+    <button id="deal-btn">Deal Card</button>
+    <button id="new-btn">New Game</button>
+  </div>
+  <script>
+    const targetValue = document.getElementById('target-value');
+    const operatorsRegion = document.getElementById('operators-region');
+    const numberPile = document.getElementById('number-pile');
+    const numberPileRegion = document.getElementById('number-pile-region');
+    const slotsRegion = document.getElementById('slots-region');
+    const dealBtn = document.getElementById('deal-btn');
+    const newBtn = document.getElementById('new-btn');
+    const messageEl = document.getElementById('message');
+    let msgTimeout;
+    let target, slots;
+    let dragEl, dragType, dragValue, dragOriginId, dragOriginSlot;
+
+    function addSlot() {
+      const idx = slots.length;
+      const slot = document.createElement('div');
+      slot.className = 'slot'; slot.dataset.index = idx;
+      slotsRegion.appendChild(slot);
+      slots.push(null);
+    }
+
+    function initGame() {
+      target = Math.floor(Math.random() * 21) + 20;
+      targetValue.textContent = target;
+      operatorsRegion.innerHTML = '<div class="region-label" style="width:100%;">Operators</div>';
+      numberPile.innerHTML = '';
+      slotsRegion.innerHTML = '<div class="region-label" style="grid-column: span 5;">Docking Spaces</div>';
+      clearMessage();
+      slots = [];
+      ['+','-','*','/','(',')'].forEach(op => operatorsRegion.appendChild(createCard(op,'operator')));
+      for (let i=0; i<3; i++) addNumberCard();
+      for (let i=0; i<7; i++) addSlot();
+    }
+
+    function createCard(value, type) {
+      const card = document.createElement('div');
+      card.className = 'card'; card.textContent = value;
+      card.dataset.type = type; card.dataset.value = value;
+      if (type==='number') card.id = 'num-'+Math.random().toString(36).substr(2,9);
+      card.addEventListener('mousedown', startDrag);
+      card.addEventListener('touchstart', startDrag);
+      return card;
+    }
+
+    function addNumberCard() { const val = Math.floor(Math.random()*10)+1; numberPile.appendChild(createCard(val,'number')); }
+
+    function startDrag(e) {
+      e.preventDefault(); const touch = e.touches ? e.touches[0] : e;
+      dragEl = e.currentTarget.cloneNode(true); dragEl.classList.add('dragging'); document.body.appendChild(dragEl);
+      dragType = e.currentTarget.dataset.type; dragValue = e.currentTarget.dataset.value;
+      if (dragType==='number') dragOriginId = e.currentTarget.id;
+      const parent = e.currentTarget.parentElement;
+      if (parent.classList.contains('slot')) dragOriginSlot = parent.dataset.index;
+      moveDrag(touch.pageX, touch.pageY);
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('touchmove', onDragMove);
+      document.addEventListener('mouseup', endDrag);
+      document.addEventListener('touchend', endDrag);
+    }
+
+    function onDragMove(e) { e.preventDefault(); const touch = e.touches ? e.touches[0] : e; moveDrag(touch.pageX, touch.pageY); }
+    function moveDrag(x,y) { dragEl.style.left=(x-20)+'px'; dragEl.style.top=(y-20)+'px'; }
+
+    function endDrag(e) {
+      document.removeEventListener('mousemove', onDragMove);
+      document.removeEventListener('touchmove', onDragMove);
+      document.removeEventListener('mouseup', endDrag);
+      document.removeEventListener('touchend', endDrag);
+      const touch = e.changedTouches ? e.changedTouches[0] : e;
+      const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (dropTarget) {
+        if (dropTarget.classList.contains('slot')) handleDrop(dropTarget);
+        else if (dropTarget.closest('#number-pile-region')) returnToPile();
+      }
+      cleanupDrag(); evaluateExpression();
+    }
+
+    function handleDrop(slotEl) {
+      const idx = slotEl.dataset.index;
+      slotEl.innerHTML=''; slotEl.appendChild(createCard(dragValue, dragType));
+      slots[idx] = {type:dragType,value:dragValue};
+      if (dragType==='number' && dragOriginId) { const orig=document.getElementById(dragOriginId); if(orig)orig.remove(); }
+      if (dragOriginSlot!=null) {
+        slots[dragOriginSlot]=null;
+        const old=slotsRegion.querySelector(`[data-index="${dragOriginSlot}"]`); if(old)old.innerHTML='';
+      }
+      if (!slots.includes(null)) addSlot();
+    }
+
+    function returnToPile() {
+      if (dragOriginSlot!=null) {
+        slots[dragOriginSlot]=null;
+        const old=slotsRegion.querySelector(`[data-index="${dragOriginSlot}"]`); if(old)old.innerHTML='';
+      }
+      if (dragType==='number') numberPile.appendChild(createCard(dragValue,'number'));
+    }
+
+    function cleanupDrag() { dragEl.remove(); dragEl=null; dragOriginId=null; dragOriginSlot=null; }
+
+    function evaluateExpression() {
+      let expr=''; slots.forEach(s=>{if(s)expr+=s.value;});
+      if(expr) {
+        try { const res=math.evaluate(expr);
+          if(res===target) showMessage('Correct!'); else showMessage(res);
+        } catch { /* invalid expr, do nothing */ }
+      }
+    }
+
+    function showMessage(text) {
+      clearTimeout(msgTimeout);
+      messageEl.textContent=text;
+      msgTimeout=setTimeout(clearMessage,2000);
+    }
+    function clearMessage() { messageEl.textContent=''; }
+
+    dealBtn.addEventListener('click',()=>{
+      const inPile=numberPile.querySelectorAll('.card').length;
+      const inSlots=slots.filter(s=>s&&s.type==='number').length;
+      if(inPile+inSlots<4) addNumberCard();
+    });
+    newBtn.addEventListener('click',initGame);
+    initGame();
+  </script>
+</body>
+</html>

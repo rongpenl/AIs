@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Galton Board Simulation</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.5/lib/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.12.0/matter.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    #canvas-container {
+      position: relative;
+    }
+    canvas {
+      display: block;
+    }
+    .controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 16px;
+      box-sizing: border-box;
+      color: #fff;
+      font-family: sans-serif;
+      font-size: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 10px 20px;
+      z-index: 100;
+    }
+    .controls div {
+      display: flex;
+      align-items: center;
+    }
+    .controls label {
+      width: 120px;
+    }
+    .controls input[type="range"] {
+      flex: 1;
+      margin-left: 10px;
+    }
+    .controls button {
+      grid-column: 1 / span 2;
+      padding: 10px;
+      font-size: 16px;
+      background: #2196f3;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .controls button:hover {
+      background: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div class="controls">
+    <div>
+      <label for="dropFreq">Drop Frequency</label>
+      <input type="range" id="dropFreq" min="1" max="20" step="1" value="5">
+    </div>
+    <div>
+      <label for="restitution">Elasticity</label>
+      <input type="range" id="restitution" min="0" max="1" step="0.05" value="0.1">
+    </div>
+    <div>
+      <label for="rowSpacing">Row Spacing</label>
+      <input type="range" id="rowSpacing" min="20" max="100" step="5" value="40">
+    </div>
+    <div>
+      <label for="pegSpacing">Peg Spacing</label>
+      <input type="range" id="pegSpacing" min="20" max="150" step="5" value="80">
+    </div>
+    <div>
+      <label for="pegRadius">Peg Radius</label>
+      <input type="range" id="pegRadius" min="4" max="30" step="1" value="12">
+    </div>
+    <div>
+      <label for="ballRadius">Ball Radius</label>
+      <input type="range" id="ballRadius" min="4" max="30" step="1" value="12">
+    </div>
+    <button id="restart">Restart Simulation</button>
+  </div>
+
+  <script>
+    // === Parameters and Matter.js aliases ===
+    let dropFrequency = 5;
+    let ballRestitution = 0.1;
+    let rowSpacing = 40;
+    let pegSpacing = 80;
+    let pegRadius = 12;
+    let ballRadius = 12;
+
+    const Engine = Matter.Engine,
+          World = Matter.World,
+          Bodies = Matter.Bodies,
+          Body = Matter.Body;
+
+    let engine, world;
+    let pegs = [], balls = [], boundaries = [], binsWalls = [];
+    let binWidth, numBins, binsStartX, wallHeight, binCounts = [];
+    let lastDropTime = 0;
+    let canvas;
+
+    function setup() {
+      // create and size canvas
+      canvas = createCanvas(100, 100);
+      canvas.parent('canvas-container');
+      engine = Engine.create();
+      world = engine.world;
+      world.gravity.y = 1;
+
+      windowResized();
+      initSimulation();
+      lastDropTime = millis();
+    }
+
+    function draw() {
+      background(30);
+      dropFrequency   = +document.getElementById('dropFreq').value;
+      ballRestitution = +document.getElementById('restitution').value;
+
+      if (millis() - lastDropTime > 1000 / dropFrequency) {
+        dropBall();
+        lastDropTime = millis();
+      }
+
+      Engine.update(engine);
+      countAndRemoveBalls();
+
+      renderBoundaries();
+      renderBins();
+      renderPegs();
+      renderBalls();
+      renderCounts();
+    }
+
+    function windowResized() {
+      const ctrlHeight = document.querySelector('.controls').clientHeight;
+      const w = windowWidth;
+      const h = windowHeight - ctrlHeight;
+      resizeCanvas(w, max(h, 200));
+    }
+
+    // initialize or restart simulation
+    function initSimulation() {
+      clearWorld();
+      rowSpacing   = +document.getElementById('rowSpacing').value;
+      pegSpacing   = +document.getElementById('pegSpacing').value;
+      pegRadius    = +document.getElementById('pegRadius').value;
+      ballRadius   = +document.getElementById('ballRadius').value;
+      createPegs();
+      createBoundaries();
+      createBins();
+      lastDropTime = millis();
+    }
+
+    function clearWorld() {
+      pegs.forEach(b => World.remove(world, b));
+      binsWalls.forEach(b => World.remove(world, b));
+      boundaries.forEach(b => World.remove(world, b));
+      balls.forEach(b => World.remove(world, b));
+      pegs = []; binsWalls = []; boundaries = []; balls = [];
+      binCounts = [];
+    }
+
+    function createPegs() {
+      const startY = 150;
+      const available = floor((height - startY - 120) / rowSpacing);
+      const rows = min(available, 10);
+      for (let row = 0; row < rows; row++) {
+        const y = startY + row * rowSpacing;
+        const count = row + 1;
+        const totalW = (count - 1) * pegSpacing;
+        const x0 = width / 2 - totalW / 2;
+        for (let i = 0; i < count; i++) {
+          const x = x0 + i * pegSpacing;
+          const peg = Bodies.circle(x, y, pegRadius, { isStatic: true, restitution: 0.5, friction: 0 });
+          pegs.push(peg);
+          World.add(world, peg);
+        }
+      }
+    }
+
+    function createBoundaries() {
+      boundaries.push(Bodies.rectangle(width / 2, height + 20, width, 40, { isStatic: true }));
+      boundaries.push(Bodies.rectangle(-20, height / 2, 40, height, { isStatic: true }));
+      boundaries.push(Bodies.rectangle(width + 20, height / 2, 40, height, { isStatic: true }));
+      World.add(world, boundaries);
+    }
+
+    function createBins() {
+      const diameter = ballRadius * 2;
+      binWidth = diameter * 2;
+      numBins = floor(width / binWidth);
+      if (numBins % 2 === 0) numBins--;
+      binsStartX = width / 2 - (numBins * binWidth) / 2;
+      wallHeight = diameter * 4;
+      binCounts = Array(numBins).fill(0);
+      const thickness = 6;
+      for (let i = 0; i <= numBins; i++) {
+        const x = binsStartX + i * binWidth;
+        const wall = Bodies.rectangle(x, height - wallHeight / 2, thickness, wallHeight, { isStatic: true });
+        binsWalls.push(wall);
+        World.add(world, wall);
+      }
+    }
+
+    function dropBall() {
+      const jitter = random(-pegSpacing * 0.2, pegSpacing * 0.2);
+      const x0 = width / 2 + jitter;
+      const ball = Bodies.circle(x0, 50, ballRadius, { restitution: ballRestitution, friction: 0.001 });
+      World.add(world, ball);
+      balls.push(ball);
+      Body.setVelocity(ball, { x: random(-1, 1), y: 0 });
+    }
+
+    function countAndRemoveBalls() {
+      for (let i = balls.length - 1; i >= 0; i--) {
+        const b = balls[i];
+        if (b.position.y > height - wallHeight) {
+          let idx = floor((b.position.x - binsStartX) / binWidth);
+          idx = constrain(idx, 0, numBins - 1);
+          binCounts[idx]++;
+          World.remove(world, b);
+          balls.splice(i, 1);
+        }
+      }
+    }
+
+    function renderPegs() {
+      noStroke(); fill(200);
+      pegs.forEach(p => {
+        push();
+          translate(p.position.x, p.position.y);
+          ellipse(0, 0, pegRadius * 2);
+        pop();
+      });
+    }
+
+    function renderBalls() {
+      noStroke(); fill(100, 200, 240);
+      balls.forEach(b => {
+        push();
+          translate(b.position.x, b.position.y);
+          ellipse(0, 0, ballRadius * 2);
+        pop();
+      });
+    }
+
+    function renderBoundaries() {
+      noStroke(); fill(170);
+      boundaries.forEach(w => {
+        push();
+          translate(w.position.x, w.position.y);
+          rectMode(CENTER);
+          rect(0, 0, w.bounds.max.x - w.bounds.min.x, w.bounds.max.y - w.bounds.min.y);
+        pop();
+      });
+    }
+
+    function renderBins() {
+      noStroke(); fill(180);
+      binsWalls.forEach(w => {
+        push();
+          translate(w.position.x, w.position.y);
+          rectMode(CENTER);
+          rect(0, 0, w.bounds.max.x - w.bounds.min.x, w.bounds.max.y - w.bounds.min.y);
+        pop();
+      });
+    }
+
+    function renderCounts() {
+      textAlign(CENTER, BOTTOM);
+      fill(255);
+      textSize(18);
+      for (let i = 0; i < numBins; i++) {
+        const x = binsStartX + (i + 0.5) * binWidth;
+        const y = height - wallHeight - 14;
+        text(binCounts[i], x, y);
+      }
+    }
+
+    document.getElementById('restart').addEventListener('click', initSimulation);
+  </script>
+</body>
+</html>
