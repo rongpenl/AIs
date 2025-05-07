@@ -7,5 +7,5 @@ A collection of interesting usage of AI in education and programming, particular
 | Name                    | Author | Description                                               | Link to Prompt                          | Link to Code                  |
 | ----------------------- | ------ | --------------------------------------------------------- | --------------------------------------- | ----------------------------- |
 | Galton board simulation | Ron Li | Customizable Galton board simulation                      | [Galton board](Galton_Prompt.md)        | [HTML](Galton.html)           |
-| Arithmetic poker        | Ron Li | A Texas Hold'em-like game for praticing basic arithmetics | [Arithmetic poker](Arithmetic_Poker.md) | [HTML](Arithmetic_Poker.html) |
+| Arithmetic poker        | Ron Li | A Texas Hold'em-like game for praticing basic arithmetics (better experience on phones) | [Arithmetic poker](Arithmetic_Poker.md) | [HTML](Arithmetic_Poker.html) |
 | Move in rain simulation    | Ron Li | A simulation of a person walking in the rain              | [Rain move](Rain_Move.md)               | [JavaScript](Rain_Move.js)        |
