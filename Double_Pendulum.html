@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Double Pendulum</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+let L1 = 150, L2 = 150, t = 0;
+let trace = [];
+
+function setup(){
+  createCanvas(800, 800);
+  angleMode(RADIANS);
+}
+
+function draw(){
+  background(0);
+  translate(width/2, height/2);
+  let dt = deltaTime / 1000;
+  let theta1 = PI * t;
+  let theta2 = PI * PI * t;
+  let x1 = L1 * cos(theta1);
+  let y1 = L1 * sin(theta1);
+  let x2 = x1 + L2 * cos(theta1 + theta2);
+  let y2 = y1 + L2 * sin(theta1 + theta2);
+
+  trace.push(createVector(x2, y2));
+  if (trace.length > 1000) {
+    trace.shift();
+  }
+
+  noFill();
+  stroke(255, 204, 0);
+  strokeWeight(2);
+  beginShape();
+  for (let v of trace) {
+    vertex(v.x, v.y);
+  }
+  endShape();
+
+  stroke(0, 0, 255);
+  strokeWeight(4);
+  line(0, 0, x1, y1);
+
+  stroke(255, 0, 0);
+  line(x1, y1, x2, y2);
+
+  fill(255, 255, 0);
+  noStroke();
+  ellipse(x2, y2, 10, 10);
+
+  t += dt;
+}
+</script>
+</body>
+</html>
