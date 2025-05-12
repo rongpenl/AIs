@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>100 Bouncing Balls in a Sphere</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <!-- p5.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Global variables
+let balls = [];
+const numBalls = 100;
+const containerRadius = 300;
+const ballRadius = 10;
+let rotationAngle = 0;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight, WEBGL);
+  for (let i = 0; i < numBalls; i++) {
+    let pos = randomPointInSphere(containerRadius - ballRadius);
+    let vel = p5.Vector.random3D();
+    vel.mult(random(1, 3));
+    balls.push(new Ball(pos, vel, ballRadius));
+  }
+}
+
+function draw() {
+  background(0);
+  for (let ball of balls) {
+    ball.update();
+  }
+  for (let i = 0; i < balls.length; i++) {
+    for (let j = i + 1; j < balls.length; j++) {
+      resolveCollision(balls[i], balls[j]);
+    }
+  }
+  push();
+  rotateY(rotationAngle);
+  rotateX(rotationAngle * 0.5);
+  noFill();
+  stroke(255);
+  strokeWeight(2);
+  sphere(containerRadius);
+  noStroke();
+  fill(255, 255, 0);
+  for (let ball of balls) {
+    push();
+    translate(ball.pos.x, ball.pos.y, ball.pos.z);
+    sphere(ball.r);
+    pop();
+  }
+  pop();
+  rotationAngle += 0.005;
+}
+
+class Ball {
+  constructor(pos, vel, r) {
+    this.pos = pos.copy();
+    this.vel = vel.copy();
+    this.r = r;
+  }
+
+  update() {
+    this.pos.add(this.vel);
+    let distFromCenter = this.pos.mag();
+    if (distFromCenter + this.r > containerRadius) {
+      let normal = this.pos.copy().normalize();
+      this.pos = normal.copy().mult(containerRadius - this.r);
+      let dot = this.vel.dot(normal);
+      if (dot > 0) {
+        let reflection = normal.copy().mult(2 * dot);
+        this.vel.sub(reflection);
+      }
+    }
+  }
+}
+
+function resolveCollision(ball1, ball2) {
+  let distVec = p5.Vector.sub(ball2.pos, ball1.pos);
+  let distance = distVec.mag();
+  let minDist = ball1.r + ball2.r;
+  if (distance < minDist) {
+    let normal = (distance === 0) ? p5.Vector.random3D() : distVec.copy().normalize();
+    let relVel = p5.Vector.sub(ball2.vel, ball1.vel);
+    let speed = relVel.dot(normal);
+    if (speed < 0) {
+      let impulse = -speed;
+      let impulseVec = normal.copy().mult(impulse);
+      ball1.vel.sub(impulseVec);
+      ball2.vel.add(impulseVec);
+    }
+    let overlap = minDist - distance;
+    let correction = normal.copy().mult(overlap / 2);
+    ball1.pos.sub(correction);
+    ball2.pos.add(correction);
+  }
+}
+
+function randomPointInSphere(maxR) {
+  let dir = p5.Vector.random3D();
+  let r = pow(random(), 1/3) * maxR;
+  return dir.mult(r);
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>
