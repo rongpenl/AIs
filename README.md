@@ -7,7 +7,7 @@ A [collection](https://github.com/rongpenl/AIs) of interesting usage of AI in ed
 | ----------------------- | ------ | --------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------ |
 | Arithmetic poker        | Ron Li | A Texas Hold'em-like game for praticing basic arithmetics (better experience on phones) | [Arithmetic poker](Arithmetic_Poker_Prompt.md)   | [HTML](Arithmetic_Poker.html)  |
 
-## Physics Simulation
+## Physics Simulations
 
 | Name                    | Author | Description                                                                             | Link to Prompt                                   | Link to Code                   |
 | ----------------------- | ------ | --------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------ |
