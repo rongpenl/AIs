@@ -14,4 +14,4 @@ Write a p5.js simulation according to these specs:
   Remove any drop upon collision.
 - Display on–screen counters for “top collisions,” “front collisions,” and elapsed time.
 
-If I’ve missed any important parameter or detail, let me know.
+Create a single HTML file with all necessary code, including the p5.js library. The code should be clean, modular, and easy to understand. Use object-oriented design where appropriate. Use this js file: https://cdn.jsdelivr.net/npm/p5@1.11.5/lib/p5.min.js
