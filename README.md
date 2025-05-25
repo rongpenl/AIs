@@ -3,9 +3,10 @@
 A [collection](https://github.com/rongpenl/AIs) of interesting usage of AI in education and programming, particularly in math education, created or curated by [Ron Li](https://www.linkedin.com/in/rongpengli/)
 
 ## Mathematics Games
+
 | Name                    | Author | Description                                                                             | Link to Prompt                                   | Link to Code                   |
 | ----------------------- | ------ | --------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------ |
-| Arithmetic poker        | Ron Li | A Texas Hold'em-like game for praticing basic arithmetics (better experience on phones) | [Arithmetic poker](Arithmetic_Poker_Prompt.md)   | [HTML](Arithmetic_Poker.html)  |
+| Arithmetic poker        | Ron Li | A Texas Hold\'em-like game for practicing basic arithmetics (better experience on phones) | [Arithmetic poker](Arithmetic_Poker_Prompt.md)   | [HTML](Arithmetic_Poker.html)  |
 | Ox and cow game        | Ron Li | A number guessing game with feedback on correct digits and positions                    | [Ox and cow](Ox_Cow_Prompt.md)                  | [HTML](Ox_Cow.html)            |
 
 ## Physics Simulations
