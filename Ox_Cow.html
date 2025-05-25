@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bulls and Cows Game</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 400px;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #history {
+            border: 1px solid #ccc;
+            padding: 8px;
+            height: 200px;
+            overflow-y: auto;
+        }
+        #answer-container, #controls-top, #guess-container, #controls-bottom {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        #answer {
+            flex: 1;
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 8px;
+            font-size: 1.2em;
+            user-select: none;
+        }
+        button {
+            flex: 1;
+            padding: 10px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        #guess {
+            flex: 1;
+            min-height: 1.5em;
+            border: 1px solid #ccc;
+            padding: 8px;
+            font-size: 1.2em;
+            user-select: none;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+        .keypad button {
+            padding: 12px;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+    <div id="history"></div>
+
+    <div id="answer-container">
+        <div id="answer">????</div>
+    </div>
+
+    <div id="controls-top">
+        <button id="startBtn">Start</button>
+        <button id="showBtn">Show Answer</button>
+    </div>
+
+    <div id="guess-container">
+        <div id="guess"></div>
+    </div>
+
+    <div class="keypad">
+        <!-- digits 0–9 -->
+        <button class="digit">1</button>
+        <button class="digit">2</button>
+        <button class="digit">3</button>
+        <button class="digit">4</button>
+        <button class="digit">5</button>
+        <button class="digit">6</button>
+        <button class="digit">7</button>
+        <button class="digit">8</button>
+        <button class="digit">9</button>
+        <button class="digit">0</button>
+    </div>
+
+    <div id="controls-bottom">
+        <button id="deleteBtn">Delete</button>
+        <button id="submitBtn">Submit</button>
+    </div>
+
+    <script>
+        let secret = '';
+        let currentGuess = '';
+        let gameOver = false;
+
+        function genSecret() {
+            const digits = [];
+            while (digits.length < 4) {
+                const d = Math.floor(Math.random() * 10).toString();
+                if (!digits.includes(d)) digits.push(d);
+            }
+            return digits.join('');
+        }
+
+        function startGame() {
+            secret = genSecret();
+            currentGuess = '';
+            gameOver = false;
+            document.getElementById('history').innerHTML = '';
+            document.getElementById('answer').textContent = '????';
+            updateGuessDisplay();
+        }
+
+        function updateGuessDisplay() {
+            document.getElementById('guess').textContent = currentGuess;
+        }
+
+        function appendHistory(guess, cows, ox) {
+            const line = document.createElement('div');
+            line.textContent = `${guess} → ${cows} Cow${cows !== 1 ? 's' : ''} | ${ox} Ox`;
+            document.getElementById('history').appendChild(line);
+            // auto-scroll
+            const hist = document.getElementById('history');
+            hist.scrollTop = hist.scrollHeight;
+        }
+
+        function evaluateGuess() {
+            if (currentGuess.length !== 4) {
+                alert('Enter exactly 4 digits.');
+                return;
+            }
+            // check duplicates
+            const set = new Set(currentGuess);
+            if (set.size < 4) {
+                alert('Digits must be unique.');
+                return;
+            }
+            let cows = 0, ox = 0;
+            for (let i = 0; i < 4; i++) {
+                if (currentGuess[i] === secret[i]) {
+                    cows++;
+                } else if (secret.includes(currentGuess[i])) {
+                    ox++;
+                }
+            }
+            appendHistory(currentGuess, cows, ox);
+            if (cows === 4) {
+                document.getElementById('answer').textContent = secret;
+                alert('Congratulations! You guessed it!');
+                gameOver = true;
+            }
+            currentGuess = '';
+            updateGuessDisplay();
+        }
+
+        window.onload = () => {
+            document.getElementById('startBtn').addEventListener('click', startGame);
+            document.getElementById('showBtn').addEventListener('click', () => {
+                document.getElementById('answer').textContent = secret;
+            });
+            document.querySelectorAll('.digit').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (gameOver) return;
+                    if (currentGuess.length >= 4) return;
+                    const d = btn.textContent;
+                    if (currentGuess.includes(d)) return;
+                    currentGuess += d;
+                    updateGuessDisplay();
+                });
+            });
+            document.getElementById('deleteBtn').addEventListener('click', () => {
+                if (gameOver) return;
+                currentGuess = currentGuess.slice(0, -1);
+                updateGuessDisplay();
+            });
+            document.getElementById('submitBtn').addEventListener('click', () => {
+                if (gameOver) return;
+                evaluateGuess();
+            });
+            // initialize first game
+            startGame();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid-Based Gravity Simulation</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.min.js"></script>
+</head>
+<body>
+<script>
+let grid = [];
+let cols, rows;
+const size = 10;
+
+function setup() {
+  createCanvas(400, 400);
+  cols = floor(width / size);
+  rows = floor(height / size);
+  for (let i = 0; i < cols; i++) {
+    grid[i] = [];
+    for (let j = 0; j < rows; j++) {
+      grid[i][j] = 0;
+    }
+  }
+}
+
+function draw() {
+  background(220);
+  drawGrid();
+  updateGrid();
+}
+
+function drawGrid() {
+  noStroke();
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      if (grid[i][j] === 1) {
+        fill(0);
+        rect(i * size, j * size, size, size);
+      }
+    }
+  }
+}
+
+function updateGrid() {
+  let nextGrid = [];
+  for (let i = 0; i < cols; i++) {
+    nextGrid[i] = [];
+    for (let j = 0; j < rows; j++) {
+      nextGrid[i][j] = 0;
+    }
+  }
+
+  for (let i = 0; i < cols; i++) {
+    for (let j = rows - 1; j >= 0; j--) {
+      if (grid[i][j] === 1) {
+        // Fall down if empty
+        if (j < rows - 1 && grid[i][j + 1] === 0) {
+          nextGrid[i][j + 1] = 1;
+        } else {
+          // Try sliding
+          let dirs = [];
+          if (i > 0 && j < rows - 1 && grid[i - 1][j + 1] === 0) dirs.push([-1, 1]);
+          if (i < cols - 1 && j < rows - 1 && grid[i + 1][j + 1] === 0) dirs.push([1, 1]);
+          if (dirs.length > 0) {
+            let choice = random(dirs);
+            nextGrid[i + choice[0]][j + choice[1]] = 1;
+          } else {
+            nextGrid[i][j] = 1;
+          }
+        }
+      }
+    }
+  }
+
+  grid = nextGrid;
+}
+
+function mouseDragged() {
+  let i = floor(constrain(mouseX / size, 0, cols - 1));
+  let j = floor(constrain(mouseY / size, 0, rows - 1));
+  grid[i][j] = 1;
+}
+</script>
+</body>
+</html>
